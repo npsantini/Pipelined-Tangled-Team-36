@@ -147,6 +147,8 @@ always @(reset) begin
 //readmemh0(r); // register file
 //readmemh1(d); // data memory
 //readmemh2(i); // instruction memory
+  $readmemh("testAssembly.text", i);
+  $readmemh("testAssembly.data", d);
 end
 
 function setsrd;
@@ -202,7 +204,9 @@ assign pendz = (setsz(ir0) || setsz(ir1));
 // pending PC update?
 assign pendpc = (setspc(ir0) || setspc(ir1));
 
+// -----------------------------------------------
 // stage 0: instruction fetch and immediate extend
+// -----------------------------------------------
 always @(posedge clk) begin
   tpc = (jump ? target : pc);
 
@@ -238,7 +242,9 @@ always @(posedge clk) begin
   end
 end
 
+// -----------------------------------------------
 // stage 1: register read
+// -----------------------------------------------
 always @(posedge clk) begin
   if ((ir0 != `NOP) &&
       setsrd(ir1) &&
@@ -257,7 +263,9 @@ always @(posedge clk) begin
   end
 end
 
+// ---------------------------------------------------
 // stage 2: ALU, data memory access, store in register
+// ---------------------------------------------------
 always @(posedge clk) begin
   if ((ir1 == `NOP) ||
       ((ir1 `CC == `EQ) && (zreg == 0)) ||
@@ -301,6 +309,14 @@ always @(posedge clk) begin
 end
 endmodule
 
+// -----------------------------------------------
+// INSERT STAGE 4: REGISTER WRITE BELOW
+// -----------------------------------------------
+
+
+// -----------------------------------------------
+// TEST BENCH
+// -----------------------------------------------
 module testbench;
 reg reset = 0;
 reg clk = 0;
