@@ -179,6 +179,7 @@ input `INST inst;
 usesim = ((inst `IORR) && (inst `OP <= `OPSTR));
 endfunction
 
+// Set flag if instruction uses $d
 function usesrd;
 input `INST inst;
 usesrd = ((inst `OP == `OPADD) ||
