@@ -45,66 +45,66 @@
 
 `define SYSCALL 16'b0
 
-`define OPsys      4'h0
+`define OPsys      5'h0
 
-//`define OPoneReg   4'h1
-`define OPjumpr    4'h10
-`define OPneg      4'h11
-`define OPnegf     4'h12
-`define OPnot      4'h13
+//`define OPoneReg   5'h1
+`define OPjumpr    5'h10
+`define OPneg      5'h11
+`define OPnegf     5'h12
+`define OPnot      5'h13
 
-`define OPbrf      4'h2
-`define OPbrt      4'h3
-`define OPlex      4'h4
-`define OPlhi      4'h5
+`define OPbrf      5'h2
+`define OPbrt      5'h3
+`define OPlex      5'h4
+`define OPlhi      5'h5
 
-//`define OPnorms    4'h6
-`define OPadd      4'h60
-`define OPmul      4'h61
-`define OPslt      4'h62
-`define OPand      4'h63
-`define OPor	   4'h64
-`define OPxor      4'h65
-`define OPshift    4'h66
+//`define OPnorms    5'h6
+`define OPadd      5'h60
+`define OPmul      5'h61
+`define OPslt      5'h62
+`define OPand      5'h63
+`define OPor	   5'h64
+`define OPxor      5'h65
+`define OPshift    5'h66
 
-//`define OPfloats   4'h7
-`define OPaddf     4'h70
-`define OPmulf     4'h71
-`define OPsltf     4'h72
-`define OPrecip    4'h74
-`define OPfloat    4'h78
-`define OPint      4'h79
+//`define OPfloats   5'h7
+`define OPaddf     5'h70
+`define OPmulf     5'h71
+`define OPsltf     5'h72
+`define OPrecip    5'h74
+`define OPfloat    5'h78
+`define OPint      5'h79
 
-//`define OPmem      4'h7
-`define OPcopy     4'h7a
-`define OPload     4'h7b
-`define OPstore    4'h7c
+//`define OPmem      5'h7
+`define OPcopy     5'h7a
+`define OPload     5'h7b
+`define OPstore    5'h7c
 
-`define Decode     4'h8
+`define Decode     5'h8
 
-//`define OPsingleQ  4'h9
-`define OPnotQ     4'h90
-`define OPoneQ     4'h91
-`define OPzeroQ    4'h92
+//`define OPsingleQ  5'h9
+`define OPnotQ     5'h90
+`define OPoneQ     5'h91
+`define OPzeroQ    5'h92
 
-`define OPhadQ     4'ha
+`define OPhadQ     5'ha
 
-//`define OPtwoQ     4'hb
-`define OPcnotQ    4'hb0
-`define OPswapQ    4'hb1
+//`define OPtwoQ     5'hb
+`define OPcnotQ    5'hb0
+`define OPswapQ    5'hb1
 
-//`define OPthreeQ   4'hc
-`define OPccnotQ   4'hc0
-`define OPcswapQ   4'hc1
-`define OPandQ     4'hc3
-`define OPorQ      4'hc4
-`define OPxorQ     4'hc5
+//`define OPthreeQ   5'hc
+`define OPccnotQ   5'hc0
+`define OPcswapQ   5'hc1
+`define OPandQ     5'hc3
+`define OPorQ      5'hc4
+`define OPxorQ     5'hc5
 
-`define Start      4'hd
+`define Start      5'hd
 
-`define OPmeasQ    4'he
+`define OPmeasQ    5'he
 
-`define OPnextQ    4'hf
+`define OPnextQ    5'hf
 
 //-------------------------------------
 //-----------END NEW OP CODES----------
