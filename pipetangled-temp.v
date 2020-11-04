@@ -190,27 +190,73 @@ usesim = ((inst `IORR) && (inst `OP <= `OPSTR));
 endfunction
 
 // Set flag if instruction uses $d
+// function usesrd;
+// input `INST inst;
+// usesrd = ((inst `OP == `OPADD) ||
+//           (inst `OP == `OPADDF) ||
+//           (inst `OP == `OPAND) ||
+//           (inst `OP == `OPBIC) ||
+//           (inst `OP == `OPEOR) ||
+//           (inst `OP == `OPMUL) ||
+//           (inst `OP == `OPMULF) ||
+//           (inst `OP == `OPORR) ||
+//           (inst `OP == `OPSHA) ||
+//           (inst `OP == `OPSTR) ||
+//           (inst `OP == `OPSLT) ||
+//           (inst `OP == `OPSUB) ||
+//           (inst `OP == `OPSUBF));
+// endfunction
+
 function usesrd;
 input `INST inst;
-usesrd = ((inst `OP == `OPADD) ||
-          (inst `OP == `OPADDF) ||
-          (inst `OP == `OPAND) ||
-          (inst `OP == `OPBIC) ||
-          (inst `OP == `OPEOR) ||
-          (inst `OP == `OPMUL) ||
-          (inst `OP == `OPMULF) ||
-          (inst `OP == `OPORR) ||
-          (inst `OP == `OPSHA) ||
-          (inst `OP == `OPSTR) ||
-          (inst `OP == `OPSLT) ||
-          (inst `OP == `OPSUB) ||
-          (inst `OP == `OPSUBF));
+usesrd = ((inst `OP == `OPadd) ||
+          (inst `OP == `OPaddf ) ||
+          (inst `OP == `OPand) ||
+          (inst `OP == `OPint) ||
+          (inst `OP == `OPfloat) ||
+          (inst `OP == `OPmul) ||
+          (inst `OP == `OPmulf ) ||
+          (inst `OP == `OPneg) ||
+          (inst `OP == `OPnegf ) ||
+          (inst `OP == `OPnot) ||
+          (inst `OP == `Opor) ||
+          (inst `OP == `Oprecip) ||
+          (inst `OP == `OPshift) ||
+          (inst `OP == `OPslt) ||
+          (inst `OP == `OPsltf ) ||
+          (inst `OP == `Opstore) ||
+          (inst `OP == `OPxor));
 endfunction
 
+
 // Add all of the opcodes that apply like above
+// function usesrs;
+// input `INST inst;
+// usesrs = ((!(inst `IORR)) && (inst `OP <= `OPSTR));
+// endfunction
+
 function usesrs;
 input `INST inst;
-usesrs = ((!(inst `IORR)) && (inst `OP <= `OPSTR));
+usesrs = ((inst `OP == `OPadd) ||
+          (inst `OP == `OPaddf ) ||
+          (inst `OP == `OPand) ||
+          (inst `OP == `Opcopy) ||
+          (inst `OP == `OPfloat) ||
+          (inst `OP == `OPint) ||
+          (inst `OP == `Oplex) ||
+          (inst `OP == `OPlhi) ||
+          (inst `OP == `Opload) ||
+          (inst `OP == `OPmul) ||
+          (inst `OP == `OPmulf ) ||
+          (inst `OP == `OPneg) ||
+          (inst `OP == `OPnegf ) ||
+          (inst `OP == `OPnot) ||
+          (inst `OP == `Opor) ||
+          (inst `OP == `Oprecip) ||
+          (inst `OP == `OPshift) ||
+          (inst `OP == `OPslt) ||
+          (inst `OP == `OPsltf ) ||
+          (inst `OP == `OPorQ));
 endfunction
 
 // pending z update?
@@ -238,17 +284,18 @@ always @(posedge clk) begin
       ir0 <= `NOP;
       pc <= tpc;
     end else begin
-      if (ir[13:12] == 0) begin
-        // PRE operation
-        //havepre <= 1;
-        //prefix <= ir[11:0];
-        ir0 <= `NOP;
-      end else begin
-        if (usesim(ir)) begin
+      // if (ir[13:12] == 0) begin
+      //   // PRE operation
+      //   //havepre <= 1;
+      //   //prefix <= ir[11:0];
+      //   ir0 <= `NOP;
+      // end else begin
+      //   // Fix this part below for immediate?
+      //   if (usesim(ir)) begin
           // extend immediate
           //im0 <= {(havepre ? prefix : {12{ir[3]}}), ir `RS};
           //havepre <= 0;
-        end
+        //end
         ir0 <= ir;
       end
       pc <= tpc + 1;
