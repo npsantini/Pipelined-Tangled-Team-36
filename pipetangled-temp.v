@@ -40,6 +40,14 @@
 `define OPSTR		5'h1a
 `define OPSYS		5'h1f
 
+// `define OPFTOI		5'h12
+// `define OPITOF		5'h13
+// `define OPRECF		5'h15
+// `define OPMOV		5'h17
+// `define OPNEG		5'h18
+// `define OPLDR		5'h19
+
+
 //-------------------------------------
 //-------------NEW OP CODES------------
 //-------------------------------------
@@ -133,8 +141,8 @@ reg zreg;		// z flag
 //wire pendz;		// z update pending?
 wire pendpc;		// pc update pending?
 reg wait1;		// need to stall in stage 1?
-reg [11:0] prefix;	// 12-bit prefix value
-reg havepre;		// is prefix valid?
+//reg [11:0] prefix;	// 12-bit prefix value
+//reg havepre;		// is prefix valid?
 
 always @(reset) begin
   halt = 0;
@@ -142,7 +150,7 @@ always @(reset) begin
   ir0 = `NOP;
   ir1 = `NOP;
   jump = 0;
-  havepre = 0;
+  //havepre = 0;
 
 // use the following with dollars to initialize
 //readmemh0(r); // register file
@@ -153,11 +161,13 @@ always @(reset) begin
   $readmemh("testAssembly.data", data);
 end
 
+// Checks to see if the opcode bit pattern is between 5'b08 (OPADD) and OPSTR - If true, RD parameter is the destination
 function setsrd;
 input `INST inst;
 setsrd = ((inst `OP >= `OPADD) && (inst `OP < `OPSTR));
 endfunction
 
+// Sets the PC counter? 
 function setspc;
 input `INST inst;
 setspc = ((inst `RD == 15) && setsrd(inst));
@@ -197,6 +207,7 @@ usesrd = ((inst `OP == `OPADD) ||
           (inst `OP == `OPSUBF));
 endfunction
 
+// Add all of the opcodes that apply like above
 function usesrs;
 input `INST inst;
 usesrs = ((!(inst `IORR)) && (inst `OP <= `OPSTR));
@@ -229,14 +240,14 @@ always @(posedge clk) begin
     end else begin
       if (ir[13:12] == 0) begin
         // PRE operation
-        havepre <= 1;
-        prefix <= ir[11:0];
+        //havepre <= 1;
+        //prefix <= ir[11:0];
         ir0 <= `NOP;
       end else begin
         if (usesim(ir)) begin
           // extend immediate
-          im0 <= {(havepre ? prefix : {12{ir[3]}}), ir `RS};
-          havepre <= 0;
+          //im0 <= {(havepre ? prefix : {12{ir[3]}}), ir `RS};
+          //havepre <= 0;
         end
         ir0 <= ir;
       end
@@ -302,7 +313,25 @@ always @(posedge clk) begin
     // update z flag if we should
     //if (setsz(ir1)) zreg <= (res == 0);
 
-    // put result in rd if we should
+  //   // put result in rd if we should
+  //   if (setsrd(ir1)) begin
+  //     if (ir1 `RD == 15) begin
+  //       jump <= 1;
+  //       target <= res;
+  //     end else begin
+  //       r[ir1 `RD] <= res;
+  //       jump <= 0;
+  //     end
+  //   end else jump <= 0;
+  // end
+end
+
+
+// -----------------------------------------------
+// INSERT STAGE 4: REGISTER WRITE BELOW
+// -----------------------------------------------
+always @(posedge clk) begin
+// put result in rd if we should
     if (setsrd(ir1)) begin
       if (ir1 `RD == 15) begin
         jump <= 1;
@@ -315,11 +344,6 @@ always @(posedge clk) begin
   end
 end
 endmodule
-
-// -----------------------------------------------
-// INSERT STAGE 4: REGISTER WRITE BELOW
-// -----------------------------------------------
-
 
 // -----------------------------------------------
 // TEST BENCH
