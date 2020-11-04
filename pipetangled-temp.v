@@ -309,7 +309,7 @@ always @(posedge clk) begin
       `OPSTR:  begin res = rd1; data[rs1] <= res; end
       default: halt <= 1; // make it stop
     endcase
-
+  end
     // update z flag if we should
     //if (setsz(ir1)) zreg <= (res == 0);
 
@@ -326,23 +326,21 @@ always @(posedge clk) begin
   // end
 end
 
-
 // -----------------------------------------------
 // INSERT STAGE 4: REGISTER WRITE BELOW
 // -----------------------------------------------
 always @(posedge clk) begin
 // put result in rd if we should
-    if (setsrd(ir1)) begin
-      if (ir1 `RD == 15) begin
-        jump <= 1;
-        target <= res;
-      end else begin
-        r[ir1 `RD] <= res;
-        jump <= 0;
-      end
-    end else jump <= 0;
+  if (setsrd(ir1)) begin
+    if (ir1 `RD == 15) begin
+      jump <= 1;
+      target <= res;
+    end else begin
+      r[ir1 `RD] <= res;
+      jump <= 0;
+    end
+  end else jump <= 0;
   end
-end
 endmodule
 
 // -----------------------------------------------
