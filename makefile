@@ -1,5 +1,5 @@
 tangled: pipetangled.v assembly
-	iverilog -o pipetangled pipetangled.v
+	iverilog -o pipetangled pipetangled-temp.v
 	vvp pipetangled
 
 dump: dump.txt
