@@ -210,8 +210,8 @@ endfunction
 //Set flag if instruction uses $d
 function usesrd;
 input `INST inst;
-usesrd = ((inst `OP == `OPADD) ||
-          (inst `OP == `OPADDF) ||
+usesrd = ((inst `OP == `OPadd) ||
+          (inst `OP == `OPaddf) ||
           (inst `OP == `OPAND) ||
           (inst `OP == `OPBIC) ||
           (inst `OP == `OPEOR) ||
