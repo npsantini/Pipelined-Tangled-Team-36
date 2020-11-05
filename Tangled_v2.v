@@ -107,6 +107,7 @@ module tangled (
     // Stage 0-to-1 Registers
     reg `WORD_SIZE psr01_ir;
 
+    // Determines if an instruction is 2-words in length
     function is2WordFrmt;
         input wire `FA_SIZE fA
         input wire `FB_SIZE fB;
@@ -223,7 +224,7 @@ module tangled (
 
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;
-    ALU alu(.out(aluOut), .op(psr12_aluOp), .x(aluA), .y(aluB));
+    ALU alu(.out(aluOut), .op(psr12_aluOp), .a(ps2_rdValue), .b(ps2_rsValue));
 
     always @(posedge clk) begin
         psr23_writeBack <= psr12_writeBack;
