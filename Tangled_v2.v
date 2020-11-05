@@ -253,6 +253,8 @@ reg clk = 0;
 wire halted;
 processor PE(halted, reset, clk);
 initial begin
+  $readmemh("testAssembly.text", PE.text);
+  $readmemh("testAssembly.data", PE.data);
   $dumpfile("dump.txt");
   $dumpvars(0, PE);
   #10 reset = 1;
