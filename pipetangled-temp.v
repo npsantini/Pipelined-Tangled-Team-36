@@ -207,56 +207,28 @@ endfunction
 //           (inst `OP == `OPSUBF));
 // endfunction
 
+//Set flag if instruction uses $d
 function usesrd;
 input `INST inst;
-usesrd = ((inst `OP == `OPadd) ||
-          (inst `OP == `OPaddf ) ||
-          (inst `OP == `OPand) ||
-          (inst `OP == `OPint) ||
-          (inst `OP == `OPfloat) ||
-          (inst `OP == `OPmul) ||
-          (inst `OP == `OPmulf ) ||
-          (inst `OP == `OPneg) ||
-          (inst `OP == `OPnegf ) ||
-          (inst `OP == `OPnot) ||
-          (inst `OP == `Opor) ||
-          (inst `OP == `Oprecip) ||
-          (inst `OP == `OPshift) ||
-          (inst `OP == `OPslt) ||
-          (inst `OP == `OPsltf ) ||
-          (inst `OP == `Opstore) ||
-          (inst `OP == `OPxor));
+usesrd = ((inst `OP == `OPADD) ||
+          (inst `OP == `OPADDF) ||
+          (inst `OP == `OPAND) ||
+          (inst `OP == `OPBIC) ||
+          (inst `OP == `OPEOR) ||
+          (inst `OP == `OPMUL) ||
+          (inst `OP == `OPMULF) ||
+          (inst `OP == `OPORR) ||
+          (inst `OP == `OPSHA) ||
+          (inst `OP == `OPSTR) ||
+          (inst `OP == `OPSLT) ||
+          (inst `OP == `OPSUB) ||
+          (inst `OP == `OPSUBF));
 endfunction
 
-
 // Add all of the opcodes that apply like above
-// function usesrs;
-// input `INST inst;
-// usesrs = ((!(inst `IORR)) && (inst `OP <= `OPSTR));
-// endfunction
-
 function usesrs;
 input `INST inst;
-usesrs = ((inst `OP == `OPadd) ||
-          (inst `OP == `OPaddf ) ||
-          (inst `OP == `OPand) ||
-          (inst `OP == `Opcopy) ||
-          (inst `OP == `OPfloat) ||
-          (inst `OP == `OPint) ||
-          (inst `OP == `Oplex) ||
-          (inst `OP == `OPlhi) ||
-          (inst `OP == `Opload) ||
-          (inst `OP == `OPmul) ||
-          (inst `OP == `OPmulf ) ||
-          (inst `OP == `OPneg) ||
-          (inst `OP == `OPnegf ) ||
-          (inst `OP == `OPnot) ||
-          (inst `OP == `Opor) ||
-          (inst `OP == `Oprecip) ||
-          (inst `OP == `OPshift) ||
-          (inst `OP == `OPslt) ||
-          (inst `OP == `OPsltf ) ||
-          (inst `OP == `OPorQ));
+usesrs = ((!(inst `IORR)) && (inst `OP <= `OPSTR));
 endfunction
 
 // pending z update?
@@ -302,7 +274,7 @@ always @(posedge clk) begin
     end
 
     pc0 <= tpc;
-  end
+//end
 end
 
 // -----------------------------------------------
