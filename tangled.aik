@@ -5,7 +5,7 @@
 
 ; Segments
 .segment .text 16 0x8000 0x0    .VMEM   ; Instructions
-.segment .data 16 0x8000 0x8000 .VMEM   ; Data
+.segment .data 16 0x8000 0x0    .VMEM   ; Data
 
 
 

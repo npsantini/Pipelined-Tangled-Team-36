@@ -1,9 +1,13 @@
 ; test all instructions
 
 	.text
-  lex $1, 0x5
-  jumpr $1
+  lex $1, 0x1
+  lex $2, 0x4
+  add $1, $2
+  ;neg $1
   sys
+
+  ; Below is old instructions
   sys
   lex $1, 0x1
   lex $2, 0x4

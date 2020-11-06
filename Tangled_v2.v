@@ -132,7 +132,7 @@ module frecip(result, a);
     input wire `FLOAT_SIZE a;
     wire `FLOAT_SIZE r;
     reg [6:0] look[127:0];
-    initial $readmemh0(look);
+    initial $readmemh("reciprocalLookup.mem", look);
     assign r `FSIGN_FIELD = a `FSIGN_FIELD;
     assign r `FEXP_FIELD = 253 + (!(a `FFRAC_FIELD)) - a `FEXP_FIELD;
     assign r `FFRAC_FIELD = look[a `FFRAC_FIELD];
@@ -225,7 +225,7 @@ endmodule
 
 
 module ALU (
-    output wire `WORD_SIZE out,
+    output reg `WORD_SIZE out,
     input wire `ALUOP_SIZE op,
     input wire `WORD_SIZE a,
     input wire `WORD_SIZE b
@@ -240,7 +240,7 @@ module ALU (
     frecip myfrecip(frecipout, a);
     i2f myi2f(i2fout, a);
     f2i myf2i(f2iout, a);
-    fneg myfneg(fnegout, a, b);
+    fneg myfneg(fnegout, a);
 
     // assign output based on op
     always @* begin
@@ -375,8 +375,31 @@ module tangled (
 
     // Handle async reset logic
     always @(posedge reset) begin
+        psr01_ir <= 0;               
+        psr01_halt <= 1;
+
+        psr12_rdIndex <= 0;
+        psr12_rsIndex <= 0;
+        psr12_rdValue <= 0;
+        psr12_rsValue <= 0;
+        psr12_aluOp <= 0;
+        psr12_memWrite <= 0;                   
+        psr12_writeBack <= 0;                    
+        psr12_wbSource <= 0;     
+        psr12_branchTarget <= 0;                 
+        psr12_brf <= 0;                          
+        psr12_brt <= 0;                          
+        psr12_jumpr <= 0; 
+        psr12_halt <= 1;
+        
+        psr23_writeBack <= 0;                 
+        psr23_wbIndex <= 0;
+        psr23_wbValue <= 0;
+        psr23_bubble <= 0;                    
+        psr23_halt <= 1;                     
+
         ps0_halt <= 0;
-        ps <= 0;
+        pc <= 0;
     end
 
     // Stage 0-to-1 Registers
@@ -429,7 +452,7 @@ module tangled (
 
     function isStore;
         input `WORD_SIZE instr;
-        isMemWrite =    (instr `FA_FIELD == `FA_FIELD_F1to4) &&
+        isStore =       (instr `FA_FIELD == `FA_FIELD_F1to4) &&
                         (instr `FB_FIELD == `FB_FIELD_F1) &&
                         (instr `F1_OPA_FIELD == `F1_OPA_FIELD_OPB) &&
                         (instr `F1_OPB_FIELD == `F1_OPB_STORE);
@@ -472,7 +495,7 @@ module tangled (
         isJumpr =       (instr `FA_FIELD == `FA_FIELD_F1to4) &&
                         (instr `FB_FIELD == `FB_FIELD_F1) &&
                         (instr `F1_OPA_FIELD == `F1_OPA_FIELD_OPB) &&
-                        (instr `F1_OPB_JUMPR);
+                        (instr `F1_OPB_FIELD == `F1_OPB_JUMPR);
     endfunction
 
     function usesALU;
@@ -488,18 +511,18 @@ module tangled (
         begin 
             f0Op = {instr `F0_OP_FIELD_HIGH, instr `F0_OP_FIELD_LOW};
 
-            case (ir `FA_FIELD)
-                `FA_FIELD_F0: isWriteBack = (f0Op == F0_OP_LEX) ||
-                                            (f0Op == F0_OP_LHI) ||
-                                            (f0Op == F0_OP_MEAS) ||
-                                            (f0Op == F0_OP_NEXT);
+            case (instr `FA_FIELD)
+                `FA_FIELD_F0: isWriteBack = (f0Op == `F0_OP_LEX) ||
+                                            (f0Op == `F0_OP_LHI) ||
+                                            (f0Op == `F0_OP_MEAS) ||
+                                            (f0Op == `F0_OP_NEXT);
                 `FA_FIELD_F1to4:
-                    case (ir`FB_FIELD)
+                    case (instr`FB_FIELD)
                         `FB_FIELD_F1: 
-                            case (ir`F1_OPA_FIELD)
+                            case (instr`F1_OPA_FIELD)
                                 `F1_OPA_FIELD_ALU: isWriteBack = 1;
-                                `F1_OPA_FIELD_OPB: isWriteBack =    (ir `F1_OPB_FIELD == `F1_OPB_LOAD) ||
-                                                                    (ir `F1_OPB_FIELD == `F1_OPB_COPY);
+                                `F1_OPA_FIELD_OPB: isWriteBack =    (instr `F1_OPB_FIELD == `F1_OPB_LOAD) ||
+                                                                    (instr `F1_OPB_FIELD == `F1_OPB_COPY);
                             endcase
                         default: isWriteBack = 0;
                     endcase
@@ -509,7 +532,7 @@ module tangled (
 
     // Sign extend the 8-bit immediate
     wire `WORD_SIZE sxi;
-    assign sxi = {8{psr01_ir `IR_IMM8_MSB_FIELD}, psr01_ir `IR_IMM8_FIELD};
+    assign sxi = {{8{psr01_ir `IR_IMM8_MSB_FIELD}}, psr01_ir `IR_IMM8_FIELD};
 
     // Rd value straight from regfile
     wire `WORD_SIZE regfile_rdValue;
@@ -520,7 +543,7 @@ module tangled (
             psr12_rdIndex <= psr01_ir `IR_RD_FIELD;
             psr12_rsIndex <= psr01_ir `IR_RS_FIELD;
             psr12_rdValue <=    isLex(psr01_ir) ? sxi :
-                                {isLhi(psr01_ir) psr01_ir `IR_IMM8_FIELD ? regfile_rdValue `WORD_HIGH_FIELD, regfile_rdValue `WORD_LOW_FIELD};
+                                {isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : regfile_rdValue `WORD_HIGH_FIELD, regfile_rdValue `WORD_LOW_FIELD};
             psr12_rsValue <= regfile[psr01_ir `IR_RS_FIELD];
             psr12_aluOp <= psr01_ir `IR_ALU_OP_FIELD;
             psr12_memWrite <= isStore(psr01_ir);
@@ -548,13 +571,13 @@ module tangled (
 
     // Handle value-forwarding 
     wire `WORD_SIZE ps2_rdValue;
-    assign ps2_rdValue = psr23_writeBack && (psr12_rdIndex == psr23_wbIndex) ? psr23_wbValue;
+    assign ps2_rdValue = psr23_writeBack && (psr12_rdIndex == psr23_wbIndex) ? psr23_wbValue : psr12_rdValue;
     wire `WORD_SIZE ps2_rsValue;
-    assign ps2_rsValue = psr23_writeBack && (psr12_rsIndex == psr23_rdIndex) ? psr23_wbValue;
+    assign ps2_rsValue = psr23_writeBack && (psr12_rsIndex == psr23_wbIndex) ? psr23_wbValue : psr12_rsValue;
 
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;
-    ALU alu(.out(aluOut), .op(psr12_aluOp), .x(ps2_rdValue), .y(ps2_rsValue));
+    ALU alu(.out(aluOut), .op(psr12_aluOp), .a(ps2_rdValue), .b(ps2_rsValue));
 
     // Determine if a branch/jump should be taken, and if so, the target.
     // (Wires defined in stage 0).
@@ -570,7 +593,7 @@ module tangled (
 
         end else begin
 
-            if (!psr12_halt)
+            if (!psr12_halt) begin
                 psr23_writeBack <= psr12_writeBack;
                 psr23_wbIndex <= psr12_rdIndex;
                 
@@ -616,4 +639,31 @@ module tangled (
     assign halt = ps0_halt && psr23_halt;
 
 
+endmodule
+
+// -----------------------------------------------
+// TEST BENCH
+// -----------------------------------------------
+module testbench;
+integer i;
+reg reset = 0;
+reg clk = 0;
+wire halted;
+tangled PE(halted, reset, clk);
+initial begin
+  for (i = 0; i < 15; i = i +1) begin
+      PE.regfile[i] = 1;
+  end
+  $readmemh("testAssembly.text", PE.text);
+  $readmemh("testAssembly.data", PE.data);
+  $dumpfile("dump.txt");
+  $dumpvars(0, PE);
+  #10 reset = 1;
+  #10 reset = 0;
+  while (!halted) begin
+    #10 clk = 1;
+    #10 clk = 0;
+  end
+  $finish;
+end
 endmodule
