@@ -247,6 +247,7 @@ endmodule
 // -----------------------------------------------
 // TEST BENCH
 // -----------------------------------------------
+//This is a comment
 module testbench;
 reg reset = 0;
 reg clk = 0;
