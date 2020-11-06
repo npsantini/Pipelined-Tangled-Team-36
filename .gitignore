@@ -1,3 +1,6 @@
-pipetangled
-testAssembly.data
-testAssembly.text
+aik/*
+
+testing/*.vmem
+!testing/frecip_lookup.vmem
+
+
