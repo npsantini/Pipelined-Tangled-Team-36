@@ -551,6 +551,9 @@ module tangled (
             psr12_wbSource <=   usesALU(psr01_ir) ? `WB_SOURCE_ALU :
                                 isLoad(psr01_ir) ? `WB_SOURCE_MEM : `WB_SOURCE_VAL;
             psr12_branchTarget <= pc + sxi;
+            psr12_brf <= isBrf(psr01_ir);  
+            psr12_brt <= isBrt(psr01_ir);  
+            psr12_jumpr <= isJumpr(psr01_ir);
         end
 
         psr12_halt <= psr01_halt;
@@ -571,9 +574,9 @@ module tangled (
 
     // Handle value-forwarding 
     wire `WORD_SIZE ps2_rdValue;
-    assign ps2_rdValue = psr23_writeBack && (psr12_rdIndex == psr23_wbIndex) ? psr23_wbValue : psr12_rdValue;
+    assign ps2_rdValue = (!psr23_halt && !psr23_bubble && psr23_writeBack && (psr12_rdIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rdValue;
     wire `WORD_SIZE ps2_rsValue;
-    assign ps2_rsValue = psr23_writeBack && (psr12_rsIndex == psr23_wbIndex) ? psr23_wbValue : psr12_rsValue;
+    assign ps2_rsValue = (!psr23_halt && !psr23_bubble && psr23_writeBack && (psr12_rsIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rsValue;
 
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;
@@ -641,29 +644,39 @@ module tangled (
 
 endmodule
 
-// -----------------------------------------------
-// TEST BENCH
-// -----------------------------------------------
+
+
+
+// *****************************************************************************
+// ********************************* Testbench *********************************
+// *****************************************************************************
+
+
+
 module testbench;
-integer i;
-reg reset = 0;
-reg clk = 0;
-wire halted;
-tangled PE(halted, reset, clk);
-initial begin
-  for (i = 0; i < 15; i = i +1) begin
-      PE.regfile[i] = 1;
-  end
-  $readmemh("testAssembly.text", PE.text);
-  $readmemh("testAssembly.data", PE.data);
-  $dumpfile("dump.txt");
-  $dumpvars(0, PE);
-  #10 reset = 1;
-  #10 reset = 0;
-  while (!halted) begin
-    #10 clk = 1;
-    #10 clk = 0;
-  end
-  $finish;
-end
+    integer i;
+    reg reset = 0;
+    reg clk = 0;
+    wire halted;
+    tangled PE(halted, reset, clk);
+    initial begin
+        for (i = 0; i < 15; i = i +1) begin
+            PE.regfile[i] = 1;
+        end
+
+        $readmemh("testAssembly.text", PE.text);
+        $readmemh("testAssembly.data", PE.data);
+        $dumpfile("dump.txt");
+        $dumpvars(0, PE);
+
+        #10 reset = 1;
+        #10 reset = 0;
+        while (!halted) begin
+        #10 clk = 1;
+        #10 clk = 0;
+        end
+        $finish;
+    end
 endmodule
+
+
