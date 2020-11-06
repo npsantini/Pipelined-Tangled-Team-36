@@ -19,16 +19,17 @@
 // Format A field & values
 `define FA_FIELD            [15]
 `define FA_SIZE             [0:0]
-`define FA_FIELD_F0         1
-`define FA_FIELD_F1to4      0
+`define FA_FIELD_F0         1'b1
+// FA_FIELD_F1 1'b1?
+`define FA_FIELD_F1to4      1'b0
 
 // Format B field & values
 `define FB_FIELD            [14:13]
 `define FB_SIZE             [1:0]
-`define FB_FIELD_F1         1
-`define FB_FIELD_F2         2
-`define FB_FIELD_F3         3
-`define FB_FIELD_F4         0
+`define FB_FIELD_F1         2'b1
+`define FB_FIELD_F2         2'b2
+`define FB_FIELD_F3         2'b3
+`define FB_FIELD_F4         2'b0
 
 // Format 0 Op codes
 `define F0_OP_FIELD_HIGH    [14:13]
@@ -109,7 +110,7 @@ module processor (
 
     // Determines if an instruction is 2-words in length
     function is2WordFrmt;
-        input wire `FA_SIZE fA
+        input wire `FA_SIZE fA;
         input wire `FB_SIZE fB;
         is2WordFrmt = (fA == `FA_FIELD_F1to4) && (fB == `FB_FIELD_F3);
     endfunction
@@ -195,8 +196,11 @@ module processor (
     always @(posedge clk) begin
         psr12_rdIndex <= psr01_ir `IR_RD_FIELD;
         psr12_rsIndex <= psr01_ir `IR_RS_FIELD;
-        psr12_rdValue <=    isLex(psr01_ir) ? {8{psr01_ir `IR_IMM8_MSB_FIELD}, psr01_ir `IR_IMM8_FIELD} :
-                            regfile[psr01_ir `IR_RD_FIELD] & ((isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : 0'hFF) << 8);
+        psr12_rdValue <=    isLex(psr01_ir) ? {{8{psr01_ir `IR_IMM8_MSB_FIELD}}, psr01_ir `IR_IMM8_FIELD} :
+                            regfile[psr01_ir `IR_RD_FIELD] & ((isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : 8'hFF) << 8);
+                            
+        
+
         psr12_rsValue <= regfile[psr01_ir `IR_RS_FIELD];
         psr12_aluOp <= psr01_ir `IR_ALU_OP_FIELD;
         psr12_memWrite <= isStore(psr01_ir);
@@ -218,9 +222,9 @@ module processor (
 
     // Handle value-forwarding 
     wire `WORD_SIZE ps2_rdValue;
-    assign ps2_rdValue = psr23_writeBack && (psr12_rdIndex == psr23_wbIndex) ? psr23_wbValue;
+    assign ps2_rdValue = (psr23_writeBack && (psr12_rdIndex == psr23_wbIndex)) ? psr23_wbValue : 16'b0; // CHANGE
     wire `WORD_SIZE ps2_rsValue;
-    assign ps2_rsValue = psr23_writeBack && (psr12_rsIndex == psr23_rdIndex) ? psr23_wbValue;
+    assign ps2_rsValue = psr23_writeBack && (psr12_rsIndex == psr23_rdIndex) ? psr23_wbValue : 16'b0; // CHANGE
 
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;

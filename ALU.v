@@ -6,6 +6,7 @@
 
 
 //ALU OPs
+`define WORD_SIZE  [15:0]
 `define ALUOP_SIZE  [3:0]
 `define ALUOP_NOT   4'h0
 `define ALUOP_FLOAT 4'h1
