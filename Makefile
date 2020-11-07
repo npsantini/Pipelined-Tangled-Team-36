@@ -22,17 +22,19 @@ sim: $(TESTING_DIR)/$(TESTS_BASE_NAMES:=.vcd)
 
 # Run the sim with vvp
 $(TESTING_DIR)/%.vcd: $(TESTING_DIR)/%.vvp
-	vvp -l $<.log $@
+	vvp -l $<.log $<
 
 
 # Compile the design with iverilog
 $(TESTING_DIR)/%.vvp: $(DESIGN_FILE) $(FRECIP_LOOKUP_FILE) $(TESTING_DIR)/%.text.vmem $(TESTING_DIR)/%.data.vmem
-	iverilog -DTEST_BASE_NAME=$* -o $@ $(DESIGN_FILE)
+	iverilog -DTEST_TEXT_VMEM=\"$(TESTING_DIR)/$*.text.vmem\" -DTEST_DATA_VMEM=\"$(TESTING_DIR)/$*.data.vmem\" -DTEST_VCD=\"$(TESTING_DIR)/$*.vcd\" -o $@ $(DESIGN_FILE)
 
 
 # Generate vmem files from tangled assembly
 $(TESTING_DIR)/%.text.vmem $(TESTING_DIR)/%.data.vmem: $(TESTING_DIR)/%.tasm $(AIK) $(TASM_SPEC)
-	$(AIK) $(TASM_SPEC) $<
+	$(AIK) $(TASM_SPEC) $<; \
+	mv $(TESTING_DIR)/$*.text $(TESTING_DIR)/$*.text.vmem; \
+	mv $(TESTING_DIR)/$*.data $(TESTING_DIR)/$*.data.vmem
 
 
 # Compile and download the aik tool as needed
