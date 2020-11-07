@@ -360,7 +360,9 @@ module tangled (
     // ---------- Pipeline Stage 0 - Load ----------
 
     reg `WORD_SIZE text `IMEM_SIZE;         // Instruction memory
-    reg `IMEM_INDEX_SIZE pc;                // Program counter
+    reg `IMEM_INDEX_SIZE pc;                // Program counter register
+    wire `IMEM_INDEX_SIZE pc_eff;           // Effective program counter for current instruction
+    assign pc_eff = shouldBrJmp ? brJmpTarget : pc;
 
     // Used to determine if current instruction is from PC or a branch/jump
     // (Assigned in Stage 2)
@@ -369,7 +371,7 @@ module tangled (
 
     // Current cycle's instruction
     wire `WORD_SIZE instr;
-    assign instr = text[shouldBrJmp ? brJmpTarget : pc];
+    assign instr = text[pc_eff];
 
     reg ps0_halt;                           // Halts stage 0
 
@@ -394,8 +396,7 @@ module tangled (
         
         psr23_writeBack <= 0;                 
         psr23_wbIndex <= 0;
-        psr23_wbValue <= 0;
-        psr23_bubble <= 0;                    
+        psr23_wbValue <= 0;                  
         psr23_halt <= 1;                     
 
         ps0_halt <= 0;
@@ -422,7 +423,7 @@ module tangled (
         // stage 2 says to branch/jump, do it regardless of the instruction in
         // stage 1.
         if (!ps0_halt || shouldBrJmp) begin
-            pc <=   pc + (is2WordFrmt(instr) ? 2 : 1);
+            pc <= pc_eff + (is2WordFrmt(instr) ? 2 : 1);
             psr01_ir <= instr;
             psr01_halt <= isSysOrQat(instr);
             ps0_halt <= isSysOrQat(instr);
@@ -443,7 +444,7 @@ module tangled (
     reg psr12_memWrite;                     // Memory write flag
     reg psr12_writeBack;                    // Write-back to regfile flag
     reg `WB_SOURCE_SIZE psr12_wbSource;     // Write-back source
-    reg psr12_branchTarget;                 // Target pc if instruction is a branch
+    reg `WORD_SIZE psr12_branchTarget;      // Target pc if instruction is a branch
     reg psr12_brf;                          // Is bracnh false
     reg psr12_brt;                          // Is branch true
     reg psr12_jumpr;                        // Is jump
@@ -539,22 +540,20 @@ module tangled (
     assign regfile_rdValue = regfile[psr01_ir `IR_RD_FIELD];
 
     always @(posedge clk) begin
-        if (!psr01_halt) begin
-            psr12_rdIndex <= psr01_ir `IR_RD_FIELD;
-            psr12_rsIndex <= psr01_ir `IR_RS_FIELD;
-            psr12_rdValue <=    isLex(psr01_ir) ? sxi :
-                                {isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : regfile_rdValue `WORD_HIGH_FIELD, regfile_rdValue `WORD_LOW_FIELD};
-            psr12_rsValue <= regfile[psr01_ir `IR_RS_FIELD];
-            psr12_aluOp <= psr01_ir `IR_ALU_OP_FIELD;
-            psr12_memWrite <= isStore(psr01_ir);
-            psr12_writeBack <= isWriteBack(psr01_ir);
-            psr12_wbSource <=   usesALU(psr01_ir) ? `WB_SOURCE_ALU :
-                                isLoad(psr01_ir) ? `WB_SOURCE_MEM : `WB_SOURCE_VAL;
-            psr12_branchTarget <= pc + sxi;
-            psr12_brf <= isBrf(psr01_ir);  
-            psr12_brt <= isBrt(psr01_ir);  
-            psr12_jumpr <= isJumpr(psr01_ir);
-        end
+        psr12_rdIndex <= psr01_ir `IR_RD_FIELD;
+        psr12_rsIndex <= psr01_ir `IR_RS_FIELD;
+        psr12_rdValue <=    isLex(psr01_ir) ? sxi :
+                            {isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : regfile_rdValue `WORD_HIGH_FIELD, regfile_rdValue `WORD_LOW_FIELD};
+        psr12_rsValue <= regfile[psr01_ir `IR_RS_FIELD];
+        psr12_aluOp <= psr01_ir `IR_ALU_OP_FIELD;
+        psr12_memWrite <= isStore(psr01_ir);
+        psr12_writeBack <= isWriteBack(psr01_ir);
+        psr12_wbSource <=   usesALU(psr01_ir) ? `WB_SOURCE_ALU :
+                            isLoad(psr01_ir) ? `WB_SOURCE_MEM : `WB_SOURCE_VAL;
+        psr12_branchTarget <= pc + sxi;
+        psr12_brf <= isBrf(psr01_ir);  
+        psr12_brt <= isBrt(psr01_ir);  
+        psr12_jumpr <= isJumpr(psr01_ir);
 
         psr12_halt <= psr01_halt;
     end
@@ -569,14 +568,17 @@ module tangled (
     reg psr23_writeBack;                    // Write-back to regfile flag
     reg `REGFILE_INDEX_SIZE psr23_wbIndex;
     reg `WORD_SIZE psr23_wbValue;
-    reg psr23_bubble;                       // Bubbles stage 3
     reg psr23_halt;                         // Halts stage 3
 
     // Handle value-forwarding 
+    // (Ideally, value-forwarding should not have to consider the halt status of
+    // stage 3 (any instruction that halts should technically not write-back).
+    // However, since Qat instructions (some of which "should" write-back) are
+    // supposd to halt for this assignment, this consideration is necessary.)
     wire `WORD_SIZE ps2_rdValue;
-    assign ps2_rdValue = (!psr23_halt && !psr23_bubble && psr23_writeBack && (psr12_rdIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rdValue;
+    assign ps2_rdValue = (!psr23_halt && psr23_writeBack && (psr12_rdIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rdValue;
     wire `WORD_SIZE ps2_rsValue;
-    assign ps2_rsValue = (!psr23_halt && !psr23_bubble && psr23_writeBack && (psr12_rsIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rsValue;
+    assign ps2_rsValue = (!psr23_halt && psr23_writeBack && (psr12_rsIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rsValue;
 
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;
@@ -584,54 +586,54 @@ module tangled (
 
     // Determine if a branch/jump should be taken, and if so, the target.
     // (Wires defined in stage 0).
-    assign shouldBrJmp =    (psr12_brf && (ps2_rdValue == 0)) ||
+    // Be sure to de-assert shouldBrJmp during a bubble
+    assign shouldBrJmp =    !ps2_bubble &&
+                            ((psr12_brf && (ps2_rdValue == 0)) ||
                             (psr12_brt && (ps2_rdValue != 0)) ||
-                            psr12_jumpr;
+                            psr12_jumpr);
     assign brJmpTarget = psr12_jumpr ? ps2_rdValue : psr12_branchTarget;
 
     always @(posedge clk) begin
-        if (ps2_bubble) begin
-            psr23_bubble <= 1;  // Stage 2 is bubbling -> make stage 3 bubble in next clock cycle.
-            ps2_bubble <= 0;    // Only bubble for one clock cycle.
+        if (!ps2_bubble) begin
+            psr23_writeBack <= psr12_writeBack;
+            psr23_wbIndex <= psr12_rdIndex;
+            
+            case (psr12_wbSource)
+                `WB_SOURCE_ALU: psr23_wbValue <= aluOut;
+                `WB_SOURCE_MEM: psr23_wbValue <= data[ps2_rsValue];
+                `WB_SOURCE_VAL: psr23_wbValue <= ps2_rdValue;
+            endcase
 
-        end else begin
-
-            if (!psr12_halt) begin
-                psr23_writeBack <= psr12_writeBack;
-                psr23_wbIndex <= psr12_rdIndex;
-                
-                case (psr12_wbSource)
-                    `WB_SOURCE_ALU: psr23_wbValue <= aluOut;
-                    `WB_SOURCE_MEM: psr23_wbValue <= data[ps2_rsValue];
-                    `WB_SOURCE_VAL: psr23_wbValue <= ps2_rdValue;
-                endcase
-
-                if (psr12_memWrite) begin
-                    data[ps2_rsValue] <= ps2_rdValue;
-                end
-
-                // If a branch or jump is about to be taken, then the instruction in stage 1 is invalid,
-                // so stage 2 should bubble in the next clock cycle. 
-                ps2_bubble <= shouldBrJmp;
+            if (psr12_memWrite) begin
+                data[ps2_rsValue] <= ps2_rdValue;
             end
 
-            psr23_bubble <= 0;
             psr23_halt <= psr12_halt;
         end
+
+        // If a branch or jump is about to be taken, then the instruction in
+        // stage 1 is invalid, so stage 2 should bubble in the next clock cycle.
+        // (shouldBrJmp is never asserted if this stage is currently in a
+        // bubble, so the following statement will also force stage 2 bubbles to
+        // only occur for a single clock cycle). 
+        ps2_bubble <= shouldBrJmp;
     end
 
 
     // ---------- Pipeline Stage 3 - Write-back ----------
 
     always @(posedge clk) begin
-        if (!psr23_bubble) begin
-            // Bubble for a clock cycle
-
-            if (!psr23_halt) begin
-                // No bubble or halt, so proceed as normal
-                if (psr23_writeBack == 1) begin
-                    regfile[psr23_wbIndex] <= psr23_wbValue;
-                end
+        // Ideally, this stage should not have to be gated based on the halt
+        // signal. However, due to the fact that some Qat instructions should
+        // technically write-back, but Qat instructions are supposed to halt the
+        // processor (like sys) in this assignment (and therefore, do not
+        // actually perform any operations that would produce meaningful values
+        // to write-back to the regfile), this stage (for this assignment) must
+        // be careful to not write to the regfile if the instruction is a Qat
+        // that "should" write-back.
+        if (!psr23_halt) begin
+            if (psr23_writeBack == 1) begin
+                regfile[psr23_wbIndex] <= psr23_wbValue;
             end
         end
     end
@@ -661,7 +663,7 @@ module testbench;
     tangled PE(halted, reset, clk);
     initial begin
         for (i = 0; i < 15; i = i +1) begin
-            PE.regfile[i] = 1;
+            PE.regfile[i] = 0;
         end
 
         $readmemh("testAssembly.text", PE.text);

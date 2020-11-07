@@ -1,15 +1,15 @@
 ; test all instructions
 
 
-	.text
-  lex $1, 0x0
-  brf $0, pass
-  sys
+.text
+    lex $0, 0x0
+    brf $0, pass
+    sys
 pass:
-  lex $1, 0x1
-  lex $2, 0x4
-  add $1, $2
-  sys
+    lex $1, 0x1
+    lex $2, 0x4
+    add $1, $2
+    ;sys
 
 
     ; Below is old instructions
@@ -27,6 +27,7 @@ pass:
     lex $0, 0x1
     xor $0, $1
     brf $0, pass2
+    sys
 pass2:
     lex $1, 0xFB ; load -5 into $1
     neg $1 ; $1 should have 5
