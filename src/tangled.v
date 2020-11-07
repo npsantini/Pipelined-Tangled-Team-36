@@ -11,6 +11,11 @@
 
 
 
+`define STRINGIFY(name)     `"name`"
+`define FRECIP_LOOKUP_VMEM  frecipLookup.vmem
+
+
+
 // Generic Tangled word size
 `define WORD_SIZE           [15:0]
 `define WORD_HIGH_FIELD     [15:8]
@@ -132,7 +137,7 @@ module frecip(result, a);
     input wire `FLOAT_SIZE a;
     wire `FLOAT_SIZE r;
     reg [6:0] look[127:0];
-    initial $readmemh("reciprocalLookup.mem", look);
+    initial $readmemh(`STRINGIFY(`FRECIP_LOOKUP_VMEM), look);
     assign r `FSIGN_FIELD = a `FSIGN_FIELD;
     assign r `FEXP_FIELD = 253 + (!(a `FFRAC_FIELD)) - a `FEXP_FIELD;
     assign r `FFRAC_FIELD = look[a `FFRAC_FIELD];
@@ -666,9 +671,9 @@ module testbench;
             PE.regfile[i] = 0;
         end
 
-        $readmemh("testAssembly.text", PE.text);
-        $readmemh("testAssembly.data", PE.data);
-        $dumpfile("dump.txt");
+        $readmemh(`STRINGIFY(`TEST_TEXT_VMEM), PE.text);
+        $readmemh(`STRINGIFY(`TEST_DATA_VMEM), PE.data);
+        $dumpfile(`STRINGIFY(`TEST_VCD));
         $dumpvars(0, PE);
 
         #10 reset = 1;
