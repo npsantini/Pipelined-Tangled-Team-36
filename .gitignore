@@ -1,3 +1,9 @@
-pipetangled
-testAssembly.data
-testAssembly.text
+# Don't track the aik tool
+aik/*
+
+# Don't track simulation outputs
+testing/*
+!testing/*.aik
+!testing/*.tasm
+
+
