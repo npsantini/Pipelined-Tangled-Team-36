@@ -232,8 +232,8 @@ endmodule
 module ALU (
     output reg `WORD_SIZE out,
     input wire `ALUOP_SIZE op,
-    input wire `WORD_SIZE a,
-    input wire `WORD_SIZE b
+    input wire signed `WORD_SIZE a,
+    input wire signed `WORD_SIZE b
 );
     wire fsltout;
     wire `WORD_SIZE faddout, fmulout, frecipout, i2fout, f2iout, fnegout;
@@ -352,7 +352,8 @@ endmodule
 `define WB_SOURCE_SIZE      [1:0]
 `define WB_SOURCE_ALU       0
 `define WB_SOURCE_MEM       1
-`define WB_SOURCE_VAL       2
+`define WB_SOURCE_RD        2
+`define WB_SOURCE_RS        3
 
 
 
@@ -472,6 +473,14 @@ module tangled (
                         (instr `F1_OPB_FIELD == `F1_OPB_LOAD);
     endfunction
 
+    function isCopy;
+        input `WORD_SIZE instr;
+        isCopy =        (instr `FA_FIELD == `FA_FIELD_F1to4) &&
+                        (instr `FB_FIELD == `FB_FIELD_F1) &&
+                        (instr `F1_OPA_FIELD == `F1_OPA_FIELD_OPB) &&
+                        (instr `F1_OPB_FIELD == `F1_OPB_COPY);
+    endfunction
+
     function isLex;
         input `WORD_SIZE instr;
         isLex =         (instr `FA_FIELD == `FA_FIELD_F0) &&
@@ -544,17 +553,34 @@ module tangled (
     wire `WORD_SIZE regfile_rdValue;
     assign regfile_rdValue = regfile[psr01_ir `IR_RD_FIELD];
 
+    // The effective Rd and Rs values from the regfile with value-forwarding
+    // consideration.
+    wire `WORD_SIZE ps1_regfile_rdValue_eff;
+    assign ps1_regfile_rdValue_eff =    (!psr12_halt && !ps2_bubble && psr12_writeBack && (psr01_ir `IR_RD_FIELD == psr12_rdIndex)) ? ps2_wbValue : 
+                                        (!psr23_halt && psr23_writeBack && (psr01_ir `IR_RD_FIELD == psr23_wbIndex)) ? psr23_wbValue :
+                                        regfile[psr01_ir `IR_RD_FIELD];
+    wire `WORD_SIZE ps1_regfile_rsValue_eff;
+    assign ps1_regfile_rsValue_eff =    (!psr12_halt && !ps2_bubble && psr12_writeBack && (psr01_ir `IR_RS_FIELD == psr12_rdIndex)) ? ps2_wbValue : 
+                                        (!psr23_halt && psr23_writeBack && (psr01_ir `IR_RS_FIELD == psr23_wbIndex)) ? psr23_wbValue :
+                                        regfile[psr01_ir `IR_RS_FIELD];
+
+    wire `WORD_SIZE test;
+    assign test = regfile[psr01_ir `IR_RS_FIELD];
+
+
     always @(posedge clk) begin
         psr12_rdIndex <= psr01_ir `IR_RD_FIELD;
         psr12_rsIndex <= psr01_ir `IR_RS_FIELD;
         psr12_rdValue <=    isLex(psr01_ir) ? sxi :
-                            {isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : regfile_rdValue `WORD_HIGH_FIELD, regfile_rdValue `WORD_LOW_FIELD};
-        psr12_rsValue <= regfile[psr01_ir `IR_RS_FIELD];
+                            {isLhi(psr01_ir) ? psr01_ir `IR_IMM8_FIELD : ps1_regfile_rdValue_eff `WORD_HIGH_FIELD, ps1_regfile_rdValue_eff `WORD_LOW_FIELD};
+        psr12_rsValue <= ps1_regfile_rsValue_eff;
         psr12_aluOp <= psr01_ir `IR_ALU_OP_FIELD;
         psr12_memWrite <= isStore(psr01_ir);
         psr12_writeBack <= isWriteBack(psr01_ir);
         psr12_wbSource <=   usesALU(psr01_ir) ? `WB_SOURCE_ALU :
-                            isLoad(psr01_ir) ? `WB_SOURCE_MEM : `WB_SOURCE_VAL;
+                            isLoad(psr01_ir) ? `WB_SOURCE_MEM : 
+                            isCopy(psr01_ir) ? `WB_SOURCE_RS :
+                            `WB_SOURCE_RD;
         psr12_branchTarget <= pc + sxi;
         psr12_brf <= isBrf(psr01_ir);  
         psr12_brt <= isBrt(psr01_ir);  
@@ -580,37 +606,45 @@ module tangled (
     // stage 3 (any instruction that halts should technically not write-back).
     // However, since Qat instructions (some of which "should" write-back) are
     // supposd to halt for this assignment, this consideration is necessary.)
-    wire `WORD_SIZE ps2_rdValue;
+    /*wire `WORD_SIZE ps2_rdValue;
     assign ps2_rdValue = (!psr23_halt && psr23_writeBack && (psr12_rdIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rdValue;
     wire `WORD_SIZE ps2_rsValue;
-    assign ps2_rsValue = (!psr23_halt && psr23_writeBack && (psr12_rsIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rsValue;
+    assign ps2_rsValue = (!psr23_halt && psr23_writeBack && (psr12_rsIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rsValue;*/
 
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;
-    ALU alu(.out(aluOut), .op(psr12_aluOp), .a(ps2_rdValue), .b(ps2_rsValue));
+    ALU alu(.out(aluOut), .op(psr12_aluOp), .a(psr12_rdValue), .b(psr12_rsValue));
 
     // Determine if a branch/jump should be taken, and if so, the target.
     // (Wires defined in stage 0).
     // Be sure to de-assert shouldBrJmp during a bubble
     assign shouldBrJmp =    !ps2_bubble &&
-                            ((psr12_brf && (ps2_rdValue == 0)) ||
-                            (psr12_brt && (ps2_rdValue != 0)) ||
+                            ((psr12_brf && (psr12_rdValue == 0)) ||
+                            (psr12_brt && (psr12_rdValue != 0)) ||
                             psr12_jumpr);
-    assign brJmpTarget = psr12_jumpr ? ps2_rdValue : psr12_branchTarget;
+    assign brJmpTarget = psr12_jumpr ? psr12_rdValue : psr12_branchTarget;
+
+    // Determine write-back value
+    // (Combinatorial logic)
+    reg `WORD_SIZE ps2_wbValue;
+    always @* begin
+        case (psr12_wbSource)
+            `WB_SOURCE_ALU: ps2_wbValue = aluOut;
+            `WB_SOURCE_MEM: ps2_wbValue = data[psr12_rsValue];
+            `WB_SOURCE_RD: ps2_wbValue = psr12_rdValue;
+            `WB_SOURCE_RS: ps2_wbValue = psr12_rsValue;
+        endcase
+    end
 
     always @(posedge clk) begin
         if (!ps2_bubble) begin
             psr23_writeBack <= psr12_writeBack;
             psr23_wbIndex <= psr12_rdIndex;
             
-            case (psr12_wbSource)
-                `WB_SOURCE_ALU: psr23_wbValue <= aluOut;
-                `WB_SOURCE_MEM: psr23_wbValue <= data[ps2_rsValue];
-                `WB_SOURCE_VAL: psr23_wbValue <= ps2_rdValue;
-            endcase
+            psr23_wbValue <= ps2_wbValue;
 
             if (psr12_memWrite) begin
-                data[ps2_rsValue] <= ps2_rdValue;
+                data[psr12_rsValue] <= psr12_rdValue;
             end
 
             psr23_halt <= psr12_halt;
@@ -667,7 +701,7 @@ module testbench;
     wire halted;
     tangled PE(halted, reset, clk);
     initial begin
-        for (i = 0; i < 15; i = i +1) begin
+        for (i = 0; i < 16; i = i +1) begin
             PE.regfile[i] = 0;
         end
 
