@@ -1,6 +1,6 @@
 # Makefile for UKY CPE 480 (Fall 2020) Assignment 3 - "Pipelined Tangled"
 
-TESTS_BASE_NAMES = testCases
+TESTS_BASE_NAMES = testCases qatAnd qatCcnot qatCnot qatCswap qatHad qatMeas qatNext qatNot qatOne qatOr qatSwap qatXor qatZero
 TESTING_DIR = ./testing
 
 SOURCE_DIR = ./src
@@ -17,7 +17,7 @@ AIK = $(AIK_DIR)/$(AIK_VER)/aik
 
 # Run all testing simulations on the design
 .PHONY: sim
-sim: $(TESTING_DIR)/$(TESTS_BASE_NAMES:=.vcd)
+sim: $(addprefix $(TESTING_DIR)/, $(TESTS_BASE_NAMES:=.vcd))
 
 
 # Run the sim with vvp
