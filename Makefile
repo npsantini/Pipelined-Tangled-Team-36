@@ -4,10 +4,17 @@ TESTING_DIR = ./testing
 TEST_TASMS = $(shell ls $(TESTING_DIR)/*.tasm)
 TEST_SIM_OUTPUT_EXTS = .vcd .text.vmem .data.vmem .vvp .vvp.log
 
-SOURCE_DIR = ./src
-DESIGN_FILE = $(SOURCE_DIR)/tangled.v
+DESIGN_DIR = ./src
+DESIGN_FILE = $(DESIGN_DIR)/tangled.v
+DESIGN_SOURCES = $(shell find $(DESIGN_DIR) -type f)
 
 TASM_SPEC = $(TESTING_DIR)/tangled.aik
+
+NOTES_DIR = ./notes
+NOTES_SOURCES = $(shell find $(NOTES_DIR) -type f)
+NOTES_PDF = ./notes.pdf
+
+BUNDLE_CONTENTS = $(DESIGN_SOURCES) $(NOTES_PDF) $(NOTES_SOURCES) $(TEST_TASMS) $(TASM_SPEC) Makefile
 
 AIK_DIR = ./aik
 AIK_VER = AIK20191030
@@ -49,6 +56,12 @@ sim: $(TEST_TASMS:.tasm=.vcd)
 .PHONY: clean
 clean:
 	- rm -v $(addprefix $(TESTING_DIR)/*, $(TEST_SIM_OUTPUT_EXTS))
+
+
+# Create TGZ bundle for submission
+.PHONY: bundle
+bundle: $(BUNDLE_CONTENTS)
+	tar -czvf tangled.tgz $(BUNDLE_CONTENTS)
 
 
 # Compile and download the aik tool as needed
