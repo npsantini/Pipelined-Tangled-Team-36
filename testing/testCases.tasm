@@ -183,4 +183,32 @@ copyPass:
   brt $1, loadPass; halt if reg 1 is still 0
   sys
 loadPass:
+
+
+
+; Pseudos
+  lex $15, 0xFF
+  br brPass
+  and @12, @0, @0
+brPass:
+  jump jumpPass
   sys
+jumpPass:
+  lex $4, 0
+  jumpf $4, jumpfPass
+  sys
+jumpfPass:
+  lex $5, 7
+  jumpt $5, jumptPass
+  sys
+jumptPass:
+  load $15, 0xFFFF
+  lex $9, 1
+  add $15, $9
+  brf $15, load16Pass
+  sys
+load16Pass:
+  lex $7, 7
+  sys
+
+
