@@ -1,214 +1,258 @@
-; test all instructions
+.text
 
-	.text
-  lex $1, 0x4
-  jumpr $1
-  sys
-  sys
-  lex $1, 0x1
-  lex $2, 0x4
-  shift $1, $2
-  lex $0, 0x10
-  xor $0, $1
-  brf $0, pass
-  sys
+; Tests from previous assignent (Assignment 2)
+    lex $1, 0x4
+    jumpr $1
+    sys
+    sys
+    lex $1, 0x1
+    lex $2, 0x4
+    shift $1, $2
+    lex $0, 0x10
+    xor $0, $1
+    brf $0, pass
+    sys
 pass:
-  lex $2, 0xFC
-  shift $1, $2
-  lex $0, 0x1
-  xor $0, $1
-  brf $0, pass2
+    lex $2, 0xFC
+    shift $1, $2
+    lex $0, 0x1
+    xor $0, $1
+    brf $0, pass2
 pass2:
-  lex $1, 0xFB ; load -5 into $1
-  neg $1 ; $1 should have 5
-  load $2, 5 ; load $2 with 5
-  xor $1, $2 ; check if $1 and $2 are identical
-  brf $1, pass3
-  sys
+    lex $1, 0xFB ; load -5 into $1
+    neg $1 ; $1 should have 5
+    load $2, 5 ; load $2 with 5
+    xor $1, $2 ; check if $1 and $2 are identical
+    brf $1, pass3
+    sys
 pass3:
-  not $1 ; $1 should become 0xFFFF
-  load $2, 0xFFFF ; load $2 with 0xFFFF
-  xor $1, $2 ; check if $1 and $2 are identical
-  brf $1, pass4
-  sys
+    not $1 ; $1 should become 0xFFFF
+    load $2, 0xFFFF ; load $2 with 0xFFFF
+    xor $1, $2 ; check if $1 and $2 are identical
+    brf $1, pass4
+    sys
 pass4:
 startFloats:
-  lex $1, 0x80
-	lhi $1, 0x3f
-	lex $2, 0x00
-	lhi $2, 0x40
-	lex $3, 0x40
-	lhi $3, 0x40
-	addf $1, $2
-	xor $1, $3
-	brf $1, goodAdd
-	sys
+    lex $1, 0x80
+    lhi $1, 0x3f
+    lex $2, 0x00
+    lhi $2, 0x40
+    lex $3, 0x40
+    lhi $3, 0x40
+    addf $1, $2
+    xor $1, $3
+    brf $1, goodAdd
+    sys
 goodAdd:
-	lex $1, 0x01
-	lex $2, 0x80
-	lhi $2, 0x3f
-	float $1
-	xor $1, $2
-	brf $1, goodFloat
-	sys
+    lex $1, 0x01
+    lex $2, 0x80
+    lhi $2, 0x3f
+    float $1
+    xor $1, $2
+    brf $1, goodFloat
+    sys
 goodFloat:
-	lex $1, 0x80
-	lhi $1, 0x3f
-	lex $2, 0x01
-	int $1
-	xor $1, $2
-	brf $1, goodInt
-	sys
+    lex $1, 0x80
+    lhi $1, 0x3f
+    lex $2, 0x01
+    int $1
+    xor $1, $2
+    brf $1, goodInt
+    sys
 goodInt:
-	lex $1, 0x00
-	lhi $1, 0x40
-	copy $2, $1
-	lex $3, 0x80
-	lhi $3, 0x40
-	mulf $1, $2
-	xor $1, $3
-	not $1
-	brt $1, goodMult
-	sys
+    lex $1, 0x00
+    lhi $1, 0x40
+    copy $2, $1
+    lex $3, 0x80
+    lhi $3, 0x40
+    mulf $1, $2
+    xor $1, $3
+    not $1
+    brt $1, goodMult
+    sys
 goodMult:
-	lex $1, 0x80
-	lhi $1, 0x3f
-	lex $2, 0x80
-	lhi $2, 0xbf
-	negf $1
-	xor $1, $2
-	brf $1, goodNegf
-	sys
+    lex $1, 0x80
+    lhi $1, 0x3f
+    lex $2, 0x80
+    lhi $2, 0xbf
+    negf $1
+    xor $1, $2
+    brf $1, goodNegf
+    sys
 goodNegf:
-	lex $1, 0x00
-	lhi $1, 0x40
-	lex $2, 0x00
-	lhi $2, 0x3f
-	recip $1
-	xor $1, $2
-	brf $1, goodRecip
-	sys
+    lex $1, 0x00
+    lhi $1, 0x40
+    lex $2, 0x00
+    lhi $2, 0x3f
+    recip $1
+    xor $1, $2
+    brf $1, goodRecip
+    sys
 goodRecip:
-	lex $1, 0x80
-	lhi $1, 0x3f
-	lex $2, 0x00
-	lhi $2, 0x40
-	sltf $1, $2
-	brt $1, goodSltf
-	sys
+    lex $1, 0x80
+    lhi $1, 0x3f
+    lex $2, 0x00
+    lhi $2, 0x40
+    sltf $1, $2
+    brt $1, goodSltf
+    sys
 goodSltf:
-	lex $1, 0x80
-	lhi $1, 0x3f
-	lex $2, 0x05
-	lhi $2, 0x00
-	store $1, $2
-	load $3, $2
-	xor $1, $3
-	brf $1, goodLoadStore
-	sys
+    lex $1, 0x80
+    lhi $1, 0x3f
+    lex $2, 0x05
+    lhi $2, 0x00
+    store $1, $2
+    load $3, $2
+    xor $1, $3
+    brf $1, goodLoadStore
+    sys
 goodLoadStore:
-  lex $1, 0x5
-  lex $2, 0x6
-  slt $1, $2
-  brt $1, sltPosTrue
-  sys
+    lex $1, 0x5
+    lex $2, 0x6
+    slt $1, $2
+    brt $1, sltPosTrue
+    sys
 sltPosTrue:
-  lex $1, 0x5
-  lex $2, 0x6
-  slt $2, $1
-  brf $2, sltPosFalse
-  sys
+    lex $1, 0x5
+    lex $2, 0x6
+    slt $2, $1
+    brf $2, sltPosFalse
+    sys
 sltPosFalse:
-  lex $1, 0xFF
-  lex $2, 0x6
-  slt $2, $1
-  brf $2, sltNegFalse
-  sys
+    lex $1, 0xFF
+    lex $2, 0x6
+    slt $2, $1
+    brf $2, sltNegFalse
+    sys
 sltNegFalse:
-  lex $1, 0xFF
-  lex $2, 0x6
-  slt $1, $2
-  brt $1, sltNegTrue
-  sys
+    lex $1, 0xFF
+    lex $2, 0x6
+    slt $1, $2
+    brt $1, sltNegTrue
+    sys
 sltNegTrue:
-  lex $1, 0x3
-  lex $2, 0x4
-  add $1, $2
-  lex $0, 0x7
-  xor $1, $0
-  brf $1, addPass
-  sys
+    lex $1, 0x3
+    lex $2, 0x4
+    add $1, $2
+    lex $0, 0x7
+    xor $1, $0
+    brf $1, addPass
+    sys
 addPass:
-  lex $1, 0x3
-  lex $2, 0x2
-  mul $1, $2
-  lex $0, 0x6
-  xor $1, $0
-  brf $1, mulPass
-  sys
+    lex $1, 0x3
+    lex $2, 0x2
+    mul $1, $2
+    lex $0, 0x6
+    xor $1, $0
+    brf $1, mulPass
+    sys
 mulPass:
-  lex $1, 0xB
-  lex $2, 0x9
-  and $1, $2
-  lex $0, 0x9
-  xor $1, $0
-  brf $1, andPass
-  sys
+    lex $1, 0xB
+    lex $2, 0x9
+    and $1, $2
+    lex $0, 0x9
+    xor $1, $0
+    brf $1, andPass
+    sys
 andPass:
-  lex $1, 0xB
-  lex $2, 0x1
-  or $1, $2
-  lex $0, 0xB
-  xor $1, $0
-  brf $1, orPass
-  sys
+    lex $1, 0xB
+    lex $2, 0x1
+    or $1, $2
+    lex $0, 0xB
+    xor $1, $0
+    brf $1, orPass
+    sys
 orPass:
-  lex $1, 0x0
-  lex $2, 0x1
+    lex $1, 0x0
+    lex $2, 0x1
 loop:
-  add $1, $2
-  copy $0, $1
-  lex $3, 0x5
-  xor $0, $3
-  brt $0, loop ; test backwards branch
+    add $1, $2
+    copy $0, $1
+    lex $3, 0x5
+    xor $0, $3
+    brt $0, loop ; test backwards branch
 
-  lex $1, 0xFF
-  lex $2, 0x00
-  store $1, $2 ; store 0xFFFF at location 0
-  copy $1, $2 ; copy 0x0000 into reg 1
-  brf $1, copyPass ; halt if any bit of reg 1 is 1
-  sys
+    lex $1, 0xFF
+    lex $2, 0x00
+    store $1, $2 ; store 0xFFFF at location 0
+    copy $1, $2 ; copy 0x0000 into reg 1
+    brf $1, copyPass ; halt if any bit of reg 1 is 1
+    sys
 copyPass:
-  load $1, $2 ; load 0xFFFF into reg 1
-  brt $1, loadPass; halt if reg 1 is still 0
-  sys
+    load $1, $2 ; load 0xFFFF into reg 1
+    brt $1, loadPass; halt if reg 1 is still 0
+    sys
 loadPass:
 
 
 
-; Pseudos
-  lex $15, 0xFF
-  br brPass
-  and @12, @0, @0
+; Test Pseudos
+    lex $15, 0xFF
+    br brPass
+    and @12, @0, @0
 brPass:
-  jump jumpPass
-  sys
+    jump jumpPass
+    sys
 jumpPass:
-  lex $4, 0
-  jumpf $4, jumpfPass
-  sys
+    lex $4, 0
+    jumpf $4, jumpfPass
+    sys
 jumpfPass:
-  lex $5, 7
-  jumpt $5, jumptPass
-  sys
+    lex $5, 7
+    jumpt $5, jumptPass
+    sys
 jumptPass:
-  load $15, 0xFFFF
-  lex $9, 1
-  add $15, $9
-  brf $15, load16Pass
-  sys
+    load $15, 0xFFFF
+    lex $9, 1
+    add $15, $9
+    brf $15, load16Pass
+    sys
 load16Pass:
-  lex $7, 7
-  sys
+
+
+
+; Test Floaty's NaN support
+    load $0, 0xffc0
+    load $1, 0x8000
+    copy $2, $0
+    int $2
+    xor $2, $1
+    brf $2, nanIntPass
+    sys
+nanIntPass:
+    copy $14, $0
+    negf $14
+    xor $14, $0
+    brf $14, nanNegfPass
+    sys
+nanNegfPass:
+    copy $12, $0
+    recip $12
+    xor $12, $0
+    brf $12, nanRecipPass
+    sys
+nanRecipPass:
+    copy $6, $0
+    load $4, 0x4180
+    addf $6, $4
+    xor $6, $0
+    brf $6, nanAddfPass
+    sys
+nanAddfPass:
+    copy $10, $0
+    load $4, 0x4180
+    mulf $4, $10
+    xor $4, $0
+    brf $4, nanMulfPass
+    sys
+nanMulfPass:
+    copy $13, $0
+    load $5, 0x4180
+    slt $5, $13
+    xor $5, $0
+    brf $5, nanSltPass
+    sys
+nanSltPass:
+    sys
 
 
