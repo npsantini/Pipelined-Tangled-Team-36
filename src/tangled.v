@@ -11,7 +11,16 @@
 
 
 
-//`define STRINGIFY(name)     `"name`"
+// The following macros should be set using the -D flag when invoking iverilog
+// from the command line in order to specify testbench text and data vmem files
+// and the name of the output vcd file. 
+//`define TEST_TEXT_VMEM      "set/using/the/-D/flag/on/cmdline/test.text.vmem"
+//`define TEST_DATA_VMEM      "set/using/the/-D/flag/on/cmdline/test.text.vmem"
+//`define TEST_VCD            "set/using/the/-D/flag/on/cmdline/test.vcd"
+
+
+
+// ROM used by the frecip Floaty module.
 `define FRECIP_LOOKUP_VMEM  "src/frecipLookup.vmem"
 
 
@@ -357,7 +366,7 @@ endmodule
 
 
 
-module tangled (
+module Tangled (
     output wire halt,
     input wire reset,
     input wire clk
@@ -555,6 +564,10 @@ module tangled (
 
     // The effective Rd and Rs values from the regfile with value-forwarding
     // consideration.
+    // (Ideally, value-forwarding should not have to consider the halt status of
+    // any stage (any instruction that halts should technically not write-back).
+    // However, since Qat instructions (some of which "should" write-back) are
+    // supposd to halt for this assignment, this consideration is necessary.)
     wire `WORD_SIZE ps1_regfile_rdValue_eff;
     assign ps1_regfile_rdValue_eff =    (!psr12_halt && !ps2_bubble && psr12_writeBack && (psr01_ir `IR_RD_FIELD == psr12_rdIndex)) ? ps2_wbValue : 
                                         (!psr23_halt && psr23_writeBack && (psr01_ir `IR_RD_FIELD == psr23_wbIndex)) ? psr23_wbValue :
@@ -563,10 +576,6 @@ module tangled (
     assign ps1_regfile_rsValue_eff =    (!psr12_halt && !ps2_bubble && psr12_writeBack && (psr01_ir `IR_RS_FIELD == psr12_rdIndex)) ? ps2_wbValue : 
                                         (!psr23_halt && psr23_writeBack && (psr01_ir `IR_RS_FIELD == psr23_wbIndex)) ? psr23_wbValue :
                                         regfile[psr01_ir `IR_RS_FIELD];
-
-    wire `WORD_SIZE test;
-    assign test = regfile[psr01_ir `IR_RS_FIELD];
-
 
     always @(posedge clk) begin
         psr12_rdIndex <= psr01_ir `IR_RD_FIELD;
@@ -601,16 +610,6 @@ module tangled (
     reg `WORD_SIZE psr23_wbValue;
     reg psr23_halt;                         // Halts stage 3
 
-    // Handle value-forwarding 
-    // (Ideally, value-forwarding should not have to consider the halt status of
-    // stage 3 (any instruction that halts should technically not write-back).
-    // However, since Qat instructions (some of which "should" write-back) are
-    // supposd to halt for this assignment, this consideration is necessary.)
-    /*wire `WORD_SIZE ps2_rdValue;
-    assign ps2_rdValue = (!psr23_halt && psr23_writeBack && (psr12_rdIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rdValue;
-    wire `WORD_SIZE ps2_rsValue;
-    assign ps2_rsValue = (!psr23_halt && psr23_writeBack && (psr12_rsIndex == psr23_wbIndex)) ? psr23_wbValue : psr12_rsValue;*/
-
     // Instantiate the ALU
     wire `WORD_SIZE aluOut;
     ALU alu(.out(aluOut), .op(psr12_aluOp), .a(psr12_rdValue), .b(psr12_rsValue));
@@ -626,8 +625,10 @@ module tangled (
 
     // Determine write-back value
     // (Combinatorial logic)
+    // (Simply using `@*` takes iverilog a while to resolve, so the appropriate
+    // signals have been listed explicitly in the sensitivity list.)
     reg `WORD_SIZE ps2_wbValue;
-    always @* begin
+    always @(psr12_wbSource or aluOut or data[psr12_rsValue] or psr12_rdValue or psr12_rsValue) begin
         case (psr12_wbSource)
             `WB_SOURCE_ALU: ps2_wbValue = aluOut;
             `WB_SOURCE_MEM: ps2_wbValue = data[psr12_rsValue];
@@ -694,30 +695,38 @@ endmodule
 
 
 
-module testbench;
+module Testbench;
     integer i;
     reg reset = 0;
     reg clk = 0;
     wire halted;
-    tangled PE(halted, reset, clk);
+
+    Tangled uut(halted, reset, clk);
+
     initial begin
-        for (i = 0; i < 16; i = i +1) begin
-            PE.regfile[i] = 0;
+        // Initialize regfile
+        for (i = 0; i < 16; i = i + 1) begin
+            uut.regfile[i] = 0;
         end
 
-        $readmemh(`TEST_TEXT_VMEM, PE.text);
-        $readmemh(`TEST_DATA_VMEM, PE.data);
+        $readmemh(`TEST_TEXT_VMEM, uut.text);
+        $readmemh(`TEST_DATA_VMEM, uut.data);
         $dumpfile(`TEST_VCD); //$dumpfile("testing/testCases.vcd");
-        $dumpvars(0, PE);
+        $dumpvars(0, uut);
 
+        // Reset to known states before start
         #10 reset = 1;
         #10 reset = 0;
+
+        // Run until the processor is halted
         while (!halted) begin
-        #10 clk = 1;
-        #10 clk = 0;
+            #10 clk = 1;
+            #10 clk = 0;
         end
+
         $finish;
     end
+
 endmodule
 
 
